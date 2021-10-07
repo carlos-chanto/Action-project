@@ -1,0 +1,49 @@
+name: Packer
+# Controls when the workflow will run
+on:
+  # Triggers the workflow on push or pull request events but only for the main branch
+  push:
+    branches: [ main ]
+
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+jobs:
+  packer:
+    runs-on: ubuntu-latest
+    name: packer
+    env:
+      aws_access_key: ${{ secrets.AWS_ACCESS_KEY }}
+      aws_secret_key: ${{ secrets.AWS_SECRET_KEY }}
+      token: ${{ secrets.VAR_TOKEN }}
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v2
+
+      # validate templates
+      - name: Validate Template
+        uses: hashicorp/packer-github-actions@master
+        with:
+          command: validate
+          arguments: -syntax-only
+          target: create-ga-runner.pkr.hcl
+
+
+      # init packer
+      - name: init Packer
+        uses: hashicorp/packer-github-actions@master
+        with:
+          command: init
+
+      # build artifact
+      - name: Build Artifact
+        uses: hashicorp/packer-github-actions@master
+        with:
+          command: build
+          arguments: "-color=false -on-error=abort"
+          target: create-ga-runner.pkr.hcl
+        env:
+          PACKER_LOG: 1
+
+      # additional steps to process artifacts
